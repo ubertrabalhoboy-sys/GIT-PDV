@@ -244,17 +244,11 @@
 
         // ===================================================================================
         // [PASSO MAIS IMPORTANTE] INTEGRAÇÃO COM MAKE.COM
-        // Copie as URLs dos seus Webhooks do Make.com e cole nos lugares indicados abaixo.
-        // Cada constante corresponde a um cenário ou a uma rota específica no Make.com.
+        // URLs dos seus Webhooks do Make.com
         // ===================================================================================
 
-        // Cenário de Usuários (Passo 1 do plano_integracao.md)
-        // Usado para carregar a lista de usuários na tela de login e para adicionar novos vendedores.
         const WEBHOOK_USUARIOS = 'https://hook.us1.make.com/736htrarftnrq9o6juqxx0pru63j9xlf';
-        
-        // Cenário de Vendas (Passo 2 do plano_integracao.md)
-        // Usado para registrar uma nova venda e para buscar o histórico de vendas/relatórios.
-        const WEBHOOK_VENDAS = 'https://hook.us1.make.com/59o45w4x8f5pdh7slowr643jpc26m3u5';
+        const WEBHOOK_VENDAS = 'https://hook.us1.make.com/3633e5ayqcc3u229tu0bmko1b9p69qaf';
 
         // ===================================================================================
 
@@ -264,19 +258,14 @@
         };
         let selectedUserForLogin = null;
 
-        // Função para BUSCAR dados (GET)
         async function fetchFromWebhook(url, params, errorMessage) {
-            if (url.startsWith('COLE_AQUI')) {
-                console.warn('Usando dados de teste. Insira suas URLs de Webhook.');
-                if (url.includes('USUARIOS')) return [{ name: 'gerente', password: '123', role: 'gerente' }];
-                return [];
-            }
             try {
                 const urlWithParams = new URL(url);
                 Object.entries(params).forEach(([key, value]) => urlWithParams.searchParams.append(key, value));
                 
                 const response = await fetch(urlWithParams.toString());
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
                 const data = await response.json();
                 return Array.isArray(data) ? data : (data.data || []);
             } catch (error) {
@@ -286,12 +275,7 @@
             }
         }
         
-        // Função para ENVIAR dados (POST)
         async function postToWebhook(url, body, successMessage, errorMessage) {
-            if (url.startsWith('COLE_AQUI')) {
-                 showToast(successMessage);
-                 return true;
-            }
              try {
                 const response = await fetch(url, {
                     method: 'POST',
@@ -310,7 +294,7 @@
 
         async function loadInitialData() {
             state.db.users = await fetchFromWebhook(WEBHOOK_USUARIOS, { action: 'getUsers' }, 'Falha ao carregar usuários.');
-            if (state.db.users.length === 0 && !WEBHOOK_USUARIOS.startsWith('COLE_AQUI')) {
+            if (state.db.users.length === 0) {
                  const gerente = { name: 'gerente', password: '123', role: 'gerente' };
                  await postToWebhook(WEBHOOK_USUARIOS, { action: 'addUser', ...gerente }, 'Usuário "gerente" criado com sucesso!');
                  state.db.users.push(gerente);
@@ -326,13 +310,12 @@
         
         function renderLoginScreen() {
             const userList = document.getElementById('user-list');
+            userList.innerHTML = '';
             document.getElementById('user-selection-view').classList.remove('hidden');
             document.getElementById('password-view').classList.add('hidden');
-            userList.innerHTML = '<p class="col-span-full text-center text-gray-500">Carregando usuários...</p>';
-
-            if(state.db.users.length > 0){
-                userList.innerHTML = '';
-                 state.db.users.forEach(user => {
+            
+            if (state.db.users.length > 0) {
+                state.db.users.forEach(user => {
                     const userButton = document.createElement('button');
                     userButton.className = 'flex flex-col items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors duration-200 transform hover:scale-105 border border-gray-200 dark:border-gray-700';
                     userButton.dataset.username = user.name;
@@ -340,24 +323,23 @@
                     userList.appendChild(userButton);
                 });
             } else {
-                 userList.innerHTML = '<p class="col-span-full text-center text-red-500">Nenhum usuário encontrado. Verifique a integração.</p>';
+                userList.innerHTML = '<p class="col-span-full text-center text-gray-500">Carregando usuários...</p>';
             }
         }
         
         document.getElementById('user-list').addEventListener('click', (e) => {
             const userButton = e.target.closest('button');
-            if (!userButton || !userButton.dataset.username) return;
+            if (!userButton) return;
             selectedUserForLogin = userButton.dataset.username;
-            
             document.getElementById('user-selection-view').classList.add('hidden');
             document.getElementById('password-view').classList.remove('hidden');
             document.getElementById('selected-user-info').innerHTML = `<div class="w-20 h-20 mx-auto mb-3 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-300 text-4xl font-bold">${selectedUserForLogin.charAt(0).toUpperCase()}</div><h3 class="text-xl font-bold text-gray-900 dark:text-white">${selectedUserForLogin}</h3>`;
+            document.getElementById('password').value = '';
             document.getElementById('password').focus();
         });
 
         document.getElementById('back-to-users').addEventListener('click', () => {
             selectedUserForLogin = null;
-            document.getElementById('password').value = '';
             document.getElementById('login-error').textContent = '';
             renderLoginScreen();
         });
@@ -384,10 +366,13 @@
         });
 
         const logout = async () => {
-            state.loggedInUser=null; selectedUserForLogin = null;
+            state.loggedInUser = null;
+            selectedUserForLogin = null;
+            state.db.sales = [];
             document.getElementById('app').classList.add('hidden');
             document.getElementById('login-screen').classList.remove('hidden');
-            document.getElementById('password').value=''; document.getElementById('login-error').textContent='';
+            document.getElementById('password').value = '';
+            document.getElementById('login-error').textContent = '';
             await loadInitialData();
             renderLoginScreen();
         };
@@ -462,7 +447,7 @@
             totalEl.textContent=formatCurrency(state.currentOrder.reduce((sum,i)=>sum+i.value,0));lucide.createIcons()};
             addForm.addEventListener('submit',e=>{e.preventDefault();state.currentOrder.push({name:c.querySelector('#item-name').value,value:parseFloat(c.querySelector('#item-value').value),exchange:c.querySelector('#item-exchange').value});updateUI();addForm.reset()});
             itemsContainer.addEventListener('click',e=>{const b=e.target.closest('.remove-item-btn');if(b){state.currentOrder.splice(b.dataset.index,1);updateUI()}});
-            finalizeBtn.addEventListener('click',()=>{modalContainer.classList.remove('hidden');modalContainer.innerHTML=`<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4"><h2 class="text-2xl font-bold mb-4">Finalizar Pedido</h2><form id="finalize-order-form" class="space-y-4"><div><label class="block text-sm font-medium">Nome do Cliente</label><input type="text" id="client-name" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"></div><div><label class="block text-sm font-medium">Telefone</label><input type="tel" id="client-phone" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"></div><div><label class="block text-sm font-medium">Pagamento</label><select id="payment-method" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div><div class="pt-4 flex justify-end gap-4"><button type="button" id="cancel-finalize-button" class="bg-gray-300 dark:bg-gray-600 py-2 px-4 rounded-md">Cancelar</button><button type="submit" class="bg-primary-600 text-white py-2 px-4 rounded-md">Confirmar Venda</button></div></form></div>`;
+            finalizeBtn.addEventListener('click',()=>{modalContainer.classList.remove('hidden');modalContainer.innerHTML=`<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6 m-4 fade-in"><h2 class="text-2xl font-bold mb-4">Finalizar Pedido</h2><form id="finalize-order-form" class="space-y-4"><div><label class="block text-sm font-medium">Nome do Cliente</label><input type="text" id="client-name" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"></div><div><label class="block text-sm font-medium">Telefone</label><input type="tel" id="client-phone" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"></div><div><label class="block text-sm font-medium">Pagamento</label><select id="payment-method" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700"><option>Pix</option><option>Cartão</option><option>Dinheiro</option></select></div><div class="pt-4 flex justify-end gap-4"><button type="button" id="cancel-finalize-button" class="bg-gray-300 dark:bg-gray-600 py-2 px-4 rounded-md">Cancelar</button><button type="submit" class="bg-primary-600 text-white py-2 px-4 rounded-md">Confirmar Venda</button></div></form></div>`;
             modalContainer.querySelector('#cancel-finalize-button').addEventListener('click',()=>modalContainer.classList.add('hidden'));
             modalContainer.querySelector('#finalize-order-form').addEventListener('submit',async e=>{e.preventDefault();const total=state.currentOrder.reduce((s,i)=>s+i.value,0);const saleData={action:'addSale',id:Date.now().toString(),clientName:modalContainer.querySelector('#client-name').value,clientPhone:modalContainer.querySelector('#client-phone').value,paymentMethod:modalContainer.querySelector('#payment-method').value,items:state.currentOrder.map(item=>`${item.name} (R$ ${item.value.toFixed(2)})`).join('; '),total:total,bonus:Math.floor(total/80)*2,date:new Date().toISOString(),vendedor:state.loggedInUser.name,status:'Finalizado'};
             const success=await postToWebhook(WEBHOOK_VENDAS,saleData,'Venda registrada com sucesso!','Erro ao registrar a venda.');if(success){state.currentOrder=[];updateUI();modalContainer.classList.add('hidden')}})});updateUI()
@@ -573,7 +558,7 @@
         let vendasChartInstance=null,pagamentoChartInstance=null;
         async function renderRelatorios() {
             const c = document.getElementById('relatorios-view');
-            if (!c) return; // Adicionado para segurança
+            if (!c) return; 
             const isGerente = state.loggedInUser.role === 'gerente';
             const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
             const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
@@ -596,7 +581,7 @@
 
                 const today = new Date();
                 const startOfWeek = new Date(today);
-                startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Semana começa na Segunda
+                startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); 
                 startOfWeek.setHours(0, 0, 0, 0);
 
                 const salesToday = sales.filter(s => new Date(s.date).toDateString() === today.toDateString());
@@ -616,7 +601,9 @@
                 }
                 sales.forEach(sale => {
                     const saleDate = new Date(sale.date);
-                    if (saleDate >= new Date(new Date().setDate(new Date().getDate() - 7))) {
+                    const sevenDaysAgo = new Date();
+                    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+                    if (saleDate >= sevenDaysAgo) {
                         const dayKey = saleDate.toISOString().split('T')[0];
                         if (salesLast7Days[dayKey]) {
                             salesLast7Days[dayKey].total += parseFloat(sale.total || 0);
