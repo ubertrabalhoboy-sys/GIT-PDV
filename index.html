@@ -478,7 +478,6 @@
                 c.querySelector('#orders-table-header-row').insertAdjacentHTML('afterbegin', '<th scope="col" class="px-6 py-3">Vendedor</th>');
                 const select = c.querySelector('#filter-vendedor');
                 select.innerHTML = '<option value="Todos">Todos</option>';
-                // Popula o select de vendedores a partir da lista de usuários, e não das vendas
                 const vendedores = [...new Set(state.db.users.filter(u => u.role === 'vendedor').map(u => u.name))];
                 vendedores.forEach(name => {
                     select.innerHTML += `<option value="${name}">${name}</option>`;
@@ -501,7 +500,7 @@
                     c.querySelector('#no-orders-found').style.display = 'block';
                 } else {
                     c.querySelector('#no-orders-found').style.display = 'none';
-                    sales.forEach(s => {
+                    sales.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(s => {
                         const r = document.createElement('tr');
                         r.className = 'bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600';
                         r.innerHTML = `
@@ -538,12 +537,10 @@
                     sales = sales.filter(s => s.vendedor === filters.vendedor);
                 }
                 
-                sales.sort((a, b) => new Date(b.date) - new Date(a.date));
                 updateDashboard(sales);
                 renderTable(sales);
             };
 
-            // Carrega os dados uma vez e depois apenas filtra
             const user = state.loggedInUser;
             state.db.sales = await fetchFromWebhook(WEBHOOK_VENDAS, { action: 'getSales', vendedor: user.name, cargo: user.role }, 'Erro ao carregar pedidos.');
             filterAndRender();
@@ -554,6 +551,8 @@
             });
             c.querySelector('#filter-form').addEventListener('reset', () => {
                 c.querySelector('#filter-date').value = '';
+                c.querySelector('#filter-payment').value = 'Todos';
+                if(isGerente) c.querySelector('#filter-vendedor').value = 'Todos';
                 setTimeout(filterAndRender, 0);
             });
             c.querySelector('#orders-table-body').addEventListener('click', async e => {
@@ -573,9 +572,14 @@
         
         let vendasChartInstance=null,pagamentoChartInstance=null;
         async function renderRelatorios() {
-            const c=document.getElementById('relatorios-view'),isGerente=state.loggedInUser.role==='gerente',vendedorSelectContainer=c.querySelector('#gerente-relatorios-vendedor-select-container'),vendedorSelect=c.querySelector('#relatorios-vendedor-select');
-            const user=state.loggedInUser;
-            const allSales = await fetchFromWebhook(WEBHOOK_VENDAS,{action:'getSales',vendedor:user.name,cargo:user.role},'Erro ao carregar relatórios.');
+            const c = document.getElementById('relatorios-view');
+            if (!c) return; // Adicionado para segurança
+            const isGerente = state.loggedInUser.role === 'gerente';
+            const vendedorSelectContainer = c.querySelector('#gerente-relatorios-vendedor-select-container');
+            const vendedorSelect = c.querySelector('#relatorios-vendedor-select');
+            
+            const user = state.loggedInUser;
+            const allSales = await fetchFromWebhook(WEBHOOK_VENDAS, { action: 'getSales', vendedor: user.name, cargo: user.role }, 'Erro ao carregar relatórios.');
 
             const updateReports = (vendedorName = null) => {
                 if(vendasChartInstance) vendasChartInstance.destroy();
@@ -590,27 +594,27 @@
                     sales = allSales.filter(s => s.vendedor === state.loggedInUser.name);
                 }
 
-                const today=new Date();
+                const today = new Date();
                 const startOfWeek = new Date(today);
                 startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Semana começa na Segunda
-                startOfWeek.setHours(0,0,0,0);
+                startOfWeek.setHours(0, 0, 0, 0);
 
                 const salesToday = sales.filter(s => new Date(s.date).toDateString() === today.toDateString());
                 const salesWeek = sales.filter(s => new Date(s.date) >= startOfWeek);
 
-                c.querySelector('#relatorio-vendas-hoje').textContent=formatCurrency(salesToday.reduce((sum,s)=>sum+parseFloat(s.total||0),0));
-                c.querySelector('#relatorio-bonus-dia').textContent=salesToday.reduce((sum,s)=>sum+parseFloat(s.bonus||0),0);
-                c.querySelector('#relatorio-vendas-semana').textContent=formatCurrency(salesWeek.reduce((sum,s)=>sum+parseFloat(s.total||0),0));
-                c.querySelector('#relatorio-bonus-semana').textContent=salesWeek.reduce((sum,s)=>sum+parseFloat(s.bonus||0),0);
+                c.querySelector('#relatorio-vendas-hoje').textContent = formatCurrency(salesToday.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
+                c.querySelector('#relatorio-bonus-dia').textContent = salesToday.reduce((sum, s) => sum + parseFloat(s.bonus || 0), 0);
+                c.querySelector('#relatorio-vendas-semana').textContent = formatCurrency(salesWeek.reduce((sum, s) => sum + parseFloat(s.total || 0), 0));
+                c.querySelector('#relatorio-bonus-semana').textContent = salesWeek.reduce((sum, s) => sum + parseFloat(s.bonus || 0), 0);
                 
-                const salesLast7Days={};
-                for(let i=6;i>=0;i--){
-                    const d=new Date();
-                    d.setDate(d.getDate()-i);
-                    const dayKey=d.toISOString().split('T')[0];
-                    salesLast7Days[dayKey]={label:getDayOfWeek(d),total:0}
+                const salesLast7Days = {};
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const dayKey = d.toISOString().split('T')[0];
+                    salesLast7Days[dayKey] = { label: getDayOfWeek(d), total: 0 };
                 }
-                sales.forEach(sale=>{
+                sales.forEach(sale => {
                     const saleDate = new Date(sale.date);
                     if (saleDate >= new Date(new Date().setDate(new Date().getDate() - 7))) {
                         const dayKey = saleDate.toISOString().split('T')[0];
@@ -620,30 +624,58 @@
                     }
                 });
 
-                const isDarkMode=document.documentElement.classList.contains('dark'),gridColor=isDarkMode?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)',textColor=isDarkMode?'#E5E7EB':'#374151';
-                const vendasCtx=document.getElementById('vendas-semana-chart').getContext('2d');
-                vendasChartInstance=new Chart(vendasCtx,{type:'bar',data:{labels:Object.values(salesLast7Days).map(d=>d.label),datasets:[{label:'Vendas Diárias',data:Object.values(salesLast7Days).map(d=>d.total),backgroundColor:'#10b981',borderRadius:5}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:gridColor},ticks:{color:textColor}},x:{grid:{display:false},ticks:{color:textColor}}}}});
+                const isDarkMode = document.documentElement.classList.contains('dark');
+                const gridColor = isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)';
+                const textColor = isDarkMode ? '#E5E7EB' : '#374151';
                 
-                const paymentCounts=sales.reduce((acc,sale)=>{acc[sale.paymentMethod]=(acc[sale.paymentMethod]||0)+parseFloat(sale.total);return acc},{});
-                const pagamentosCtx=document.getElementById('pagamento-chart').getContext('2d');
-                pagamentoChartInstance=new Chart(pagamentosCtx,{type:'pie',data:{labels:Object.keys(paymentCounts),datasets:[{data:Object.values(paymentCounts),backgroundColor:['#10b981','#3b82f6','#f59e0b', '#ef4444'],borderColor:isDarkMode?'#1f2937':'#ffffff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:textColor}}}}});
+                const vendasCtxEl = document.getElementById('vendas-semana-chart');
+                if (vendasCtxEl) {
+                    const vendasCtx = vendasCtxEl.getContext('2d');
+                    vendasChartInstance = new Chart(vendasCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.values(salesLast7Days).map(d => d.label),
+                            datasets: [{
+                                label: 'Vendas Diárias',
+                                data: Object.values(salesLast7Days).map(d => d.total),
+                                backgroundColor: '#10b981',
+                                borderRadius: 5
+                            }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: textColor } }, x: { grid: { display: false }, ticks: { color: textColor } } } }
+                    });
+                }
+
+                const pagamentosCtxEl = document.getElementById('pagamento-chart');
+                if (pagamentosCtxEl) {
+                    const paymentCounts = sales.reduce((acc, sale) => { acc[sale.paymentMethod] = (acc[sale.paymentMethod] || 0) + parseFloat(sale.total); return acc; }, {});
+                    const pagamentosCtx = pagamentosCtxEl.getContext('2d');
+                    pagamentoChartInstance = new Chart(pagamentosCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: Object.keys(paymentCounts),
+                            datasets: [{ data: Object.values(paymentCounts), backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'], borderColor: isDarkMode ? '#1f2937' : '#ffffff', borderWidth: 2 }]
+                        },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: textColor } } } }
+                    });
+                }
                 
-                if(!isGerente){
-                    c.querySelector('#vendedor-metas-view').classList.remove('hidden');
-                    // Lógica de metas pode ser adicionada aqui
+                if (!isGerente) {
+                    const metasView = c.querySelector('#vendedor-metas-view');
+                    if (metasView) metasView.classList.remove('hidden');
                 }
             };
             
-            if(isGerente){
+            if (isGerente && vendedorSelectContainer) {
                 vendedorSelectContainer.classList.remove('hidden');
                 const vendedores = [...new Set(allSales.map(s => s.vendedor))];
-                vendedorSelect.innerHTML='<option value="total">Relatório Total</option>';
-                vendedores.forEach(name=>{
-                    vendedorSelect.innerHTML+=`<option value="${name}">${name}</option>`
+                vendedorSelect.innerHTML = '<option value="total">Relatório Total</option>';
+                vendedores.forEach(name => {
+                    vendedorSelect.innerHTML += `<option value="${name}">${name}</option>`;
                 });
-                vendedorSelect.addEventListener('change',(e)=>updateReports(e.target.value));
+                vendedorSelect.addEventListener('change', (e) => updateReports(e.target.value));
             }
-            updateReports(isGerente?vendedorSelect.value:null);
+            updateReports(isGerente ? vendedorSelect.value : null);
         }
 
         function renderConfiguracoes() {
@@ -669,16 +701,13 @@
                 if (removeBtn) {
                     const usernameToRemove = removeBtn.dataset.username;
                     showConfirmModal(`Tem certeza que deseja remover o vendedor "${usernameToRemove}"? Todas as suas vendas continuarão no sistema, mas ele não poderá mais acessar.`, async () => {
-                        const success = await postToWebhook(WEBHOOK_USUARIOS, { action: 'removeUser', name: usernameToRemove }, 'Vendedor removido com sucesso!', 'Erro ao remover vendedor.');
-                        if (success) {
-                            state.db.users = state.db.users.filter(u => u.name !== usernameToRemove);
-                            updateVendedoresList();
-                        }
+                        // A lógica de remover do backend seria chamada aqui
+                        showToast('Função de remover ainda não implementada no backend.', 'error');
                     });
                 }
             });
 
-            c.querySelector('#save-settings-button').addEventListener('click',()=>showToast('Configurações salvas!')); // A lógica de salvar no DB pode ser adicionada aqui
+            c.querySelector('#save-settings-button').addEventListener('click',()=>showToast('Configurações salvas!'));
             updateVendedoresList();
         }
 
