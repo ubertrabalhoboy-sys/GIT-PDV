@@ -258,6 +258,7 @@
         };
         let selectedUserForLogin = null;
 
+        // ***** FUNÇÃO CORRIGIDA E ATUALIZADA *****
         async function fetchFromWebhook(url, params, errorMessage) {
             try {
                 const urlWithParams = new URL(url);
@@ -266,10 +267,37 @@
                 const response = await fetch(urlWithParams.toString());
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
-                const data = await response.json();
-                return Array.isArray(data) ? data : (data.data || []);
+                const responseText = await response.text();
+
+                // Se a resposta do webhook for vazia, retorna um array vazio para evitar erros
+                if (!responseText.trim()) {
+                    return [];
+                }
+
+                // Mantém sua limpeza de texto, caso o webhook envie uma vírgula extra no final do array
+                const cleanedText = responseText.trim().replace(/,\]$/, ']');
+                const data = JSON.parse(cleanedText);
+
+                // --- LÓGICA APRIMORADA ---
+                // Se a resposta já for um array (o formato correto que o Make.com agora envia), retorna diretamente.
+                if (Array.isArray(data)) {
+                    return data;
+                }
+
+                // Se for um objeto, procura pela primeira propriedade que seja um array e a retorna.
+                // Isso torna a função mais robusta para diferentes tipos de respostas.
+                if (typeof data === 'object' && data !== null) {
+                    const arrayInsideObject = Object.values(data).find(value => Array.isArray(value));
+                    if (arrayInsideObject) {
+                        return arrayInsideObject;
+                    }
+                }
+
+                // Se nenhum array for encontrado na resposta, avisa no console e retorna um array vazio.
+                console.warn('A resposta do webhook não continha um array de dados:', data);
+                return [];
             } catch (error) {
-                console.error(`Erro ao buscar dados:`, error);
+                console.error(`Erro ao buscar dados de ${url}:`, error);
                 showToast(errorMessage, 'error');
                 return [];
             }
@@ -481,7 +509,7 @@
             const renderTable = (sales) => {
                 const tbody = c.querySelector('#orders-table-body');
                 tbody.innerHTML = '';
-                if (sales.length === 0) {
+                if (!sales || sales.length === 0) {
                     c.querySelector('#no-orders-found').style.display = 'block';
                 } else {
                     c.querySelector('#no-orders-found').style.display = 'none';
@@ -504,7 +532,7 @@
             };
 
             const filterAndRender = () => {
-                let sales = state.db.sales;
+                let sales = state.db.sales || [];
                 const filters = {
                     date: c.querySelector('#filter-date').value,
                     payment: c.querySelector('#filter-payment').value,
@@ -565,18 +593,19 @@
             
             const user = state.loggedInUser;
             const allSales = await fetchFromWebhook(WEBHOOK_VENDAS, { action: 'getSales', vendedor: user.name, cargo: user.role }, 'Erro ao carregar relatórios.');
+            state.db.sales = allSales; // Armazena as vendas no estado global
 
             const updateReports = (vendedorName = null) => {
                 if(vendasChartInstance) vendasChartInstance.destroy();
                 if(pagamentoChartInstance) pagamentoChartInstance.destroy();
 
-                let sales = allSales;
+                let sales = state.db.sales || [];
                 if (isGerente) {
                     if (vendedorName && vendedorName !== 'total') {
-                        sales = allSales.filter(s => s.vendedor === vendedorName);
+                        sales = state.db.sales.filter(s => s.vendedor === vendedorName);
                     }
                 } else {
-                    sales = allSales.filter(s => s.vendedor === state.loggedInUser.name);
+                    sales = state.db.sales.filter(s => s.vendedor === state.loggedInUser.name);
                 }
 
                 const today = new Date();
@@ -699,16 +728,21 @@
         }
 
         const init = async () => {
-            applyTheme(localStorage.getItem('theme') || 'light');
+            const theme = localStorage.getItem('theme') || 'light';
+            applyTheme(theme);
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            });
             lucide.createIcons();
             document.getElementById('login-store-name').textContent = state.db.settings.storeName;
             await loadInitialData();
             renderLoginScreen();
         };
-        document.getElementById('theme-toggle').addEventListener('click',()=>{const h=document.documentElement;if(h.classList.contains('dark')){localStorage.setItem('theme','light');applyTheme('light')}else{localStorage.setItem('theme','dark');applyTheme('dark')}});
+        
         init();
     });
     </script>
 </body>
 </html>
-
