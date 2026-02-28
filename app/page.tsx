@@ -1,0 +1,657 @@
+"use client";
+
+import React, { useEffect } from "react";
+
+// Mock simples do Link do Next.js tipado corretamente
+const Link = ({ href, children, className, ...rest }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+  <a href={href} className={className} {...rest}>{children}</a>
+);
+
+type ButtonVariant = "gold" | "navy" | "dark";
+
+type CustomButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  children: React.ReactNode;
+  className?: string;
+  variant?: ButtonVariant;
+  href?: string;
+};
+
+// Componente de Botão Estilizado (Premium Glass/Metallic)
+const CustomButton = ({
+  children,
+  onClick,
+  className = "",
+  variant = "gold",
+  href,
+  type = "button",
+  disabled,
+  ...rest
+}: CustomButtonProps) => {
+  const gradients: Record<ButtonVariant, string> = {
+    gold:
+      "from-amber-400 via-yellow-500 to-amber-600 hover:shadow-[0_0_60px_-10px_#f59e0b] shadow-[0_0_40px_-10px_#f59e0b] text-slate-900",
+    navy:
+      "from-slate-700 via-slate-800 to-slate-900 hover:shadow-[0_0_60px_-10px_#1e293b] shadow-[0_0_40px_-10px_#1e293b] text-white",
+    dark:
+      "from-black via-zinc-900 to-black hover:shadow-[0_0_60px_-10px_#000000] shadow-[0_0_40px_-10px_#000000] text-white",
+  };
+
+  const baseClass = `group z-10 flex gap-2 overflow-hidden transition-all duration-300 hover:scale-[1.03] active:scale-[0.98] text-sm md:text-base font-bold h-14 ring-white/20 ring-1 rounded-none md:rounded-full px-10 relative items-center justify-center ${
+    gradients[variant]
+  } ${className} ${disabled ? "opacity-60 pointer-events-none" : ""}`;
+
+  const inner = (
+    <>
+      <div
+        className={`absolute inset-0 bg-gradient-to-r ${gradients[variant].split(" ")[0]} ${
+          gradients[variant].split(" ")[1]
+        } ${gradients[variant].split(" ")[2]} opacity-90 transition-opacity duration-300 group-hover:opacity-100`}
+      ></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.3),transparent_50%)] mix-blend-overlay"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_100%,rgba(0,0,0,0.15),transparent_50%)] mix-blend-overlay"></div>
+      <div className="transition-all duration-300 group-hover:border-white/60 group-hover:shadow-[inset_0_0_20px_rgba(255,255,255,0.5)] border-white/30 border md:rounded-full absolute top-0 right-0 bottom-0 left-0 shadow-[inset_0_0_15px_rgba(255,255,255,0.2)]"></div>
+      <span className="relative z-10 flex items-center gap-2 drop-shadow-sm leading-none whitespace-nowrap uppercase tracking-widest">
+        {children}
+      </span>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={baseClass}>
+        {inner}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={baseClass}
+      {...rest}
+    >
+      {inner}
+    </button>
+  );
+};
+
+export default function App() {
+  const [activeTestimonial, setActiveTestimonial] = React.useState(0);
+
+  // Lógica do Unicorn Studio (Fundo)
+  useEffect(() => {
+    // Definimos uma interface local para evitar erros de TypeScript no objeto window
+    interface CustomWindow extends Window {
+      UnicornStudio?: any;
+    }
+    const w = window as CustomWindow;
+    
+    if (!w.UnicornStudio) {
+      w.UnicornStudio = { isInitialized: false };
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.4.29/dist/unicornStudio.umd.js";
+      script.onload = () => {
+        if (!w.UnicornStudio.isInitialized) {
+          w.UnicornStudio.init();
+          w.UnicornStudio.isInitialized = true;
+        }
+      };
+      document.body.appendChild(script);
+    } else if (w.UnicornStudio && !w.UnicornStudio.isInitialized) {
+      w.UnicornStudio.init();
+      w.UnicornStudio.isInitialized = true;
+    }
+  }, []);
+
+  // Lógica para rotação automática do slide a cada 5 segundos
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveTestimonial((prev) => (prev + 1) % 3);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Depoimentos adaptados ao contexto imobiliário e parceiros
+  const testimonials = [
+    {
+      quote: "A Due Diligence feita pela Dra. Elaine evitou que comprássemos um imóvel com problemas estruturais e documentais severos. Trabalho impecável e visão de negócios única.",
+      name: "Construtora Horizonte",
+      role: "Parceiro Corporativo",
+      img: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=150&h=150"
+    },
+    {
+      quote: "Após anos de espera e atraso na entrega do meu apartamento na planta, a equipe conseguiu uma indenização justa e resolveu o impasse com a construtora em tempo recorde.",
+      name: "Mariana Costa",
+      role: "Cliente - Direito Imobiliário",
+      img: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=150&h=150"
+    },
+    {
+      quote: "A colaboração multidisciplinar que o escritório oferece é um diferencial. Como arquiteto, sinto muita segurança em indicar meus clientes para o planejamento patrimonial.",
+      name: "Roberto Almeida",
+      role: "Arquiteto Parceiro",
+      img: "https://images.unsplash.com/photo-1556157382-97eda2d62296?auto=format&fit=crop&q=80&w=150&h=150"
+    }
+  ];
+
+  const wppLink = "https://wa.me/5531972290689";
+
+  return (
+    <div className="relative min-h-screen w-full bg-slate-50 font-serif overflow-x-hidden selection:bg-amber-200 selection:text-amber-900 text-slate-800">
+      {/* Estilos Globais para Animações e Fontes */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        .font-serif { font-family: 'Cinzel', serif; }
+        .font-sans { font-family: 'Inter', sans-serif; }
+
+        @keyframes cursor-float-1 {
+          0%, 100% { transform: translate3d(-20px, 40px, 0); }
+          33% { transform: translate3d(60px, -30px, 0); }
+          66% { transform: translate3d(-40px, -10px, 0); }
+        }
+        @keyframes float-slow {
+          0%, 100% { transform: rotateX(8deg) rotateY(-8deg) translateY(0px); }
+          50% { transform: rotateX(8deg) rotateY(-8deg) translateY(-10px); }
+        }
+        @keyframes float-slow-2 {
+          0%, 100% { transform: rotateX(4deg) rotateY(4deg) translateY(0px); }
+          50% { transform: rotateX(4deg) rotateY(4deg) translateY(-10px); }
+        }
+        .perspective-800 { perspective: 1000px; }
+        .animate-float { animation: float-slow 8s ease-in-out infinite; }
+        .animate-float-2 { animation: float-slow-2 8s ease-in-out infinite; }
+      `}</style>
+
+      {/* Background Unicorn Studio */}
+      <div data-us-project="pSxbKYCCk7vGhrLFRLrG" className="fixed top-0 left-0 -z-20 w-full h-full pointer-events-none opacity-80"></div>
+
+      {/* Overlay de Gradiente para garantir legibilidade (Branco luxuoso) */}
+      <div className="fixed top-0 left-0 w-full h-full -z-10 bg-gradient-to-b from-white/60 via-slate-50/80 to-white/95 pointer-events-none"></div>
+
+      {/* Header / Logo */}
+      <div className="relative z-20 w-full flex justify-center pt-8 px-4 text-left">
+        <div className="w-full max-w-6xl bg-white/70 backdrop-blur-xl border border-white/60 rounded-none md:rounded-2xl p-5 md:p-6 shadow-[0_8px_30px_rgb(0,0,0,0.06)] flex flex-col md:flex-row items-center justify-between gap-6">
+          
+          {/* Logo Elegante */}
+          <div className="flex items-center gap-4">
+            <div className="bg-gradient-to-br from-amber-600 via-amber-500 to-yellow-600 p-[2px] rounded-lg shadow-lg">
+              <div className="bg-slate-900 px-4 py-2.5 rounded-md flex items-center justify-center">
+                <span className="font-serif font-black text-amber-400 text-2xl tracking-widest">E</span>
+                <span className="font-serif font-black text-white text-2xl tracking-widest -ml-1">A</span>
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="font-serif font-black text-slate-900 text-2xl tracking-widest uppercase leading-none">
+                Elaine Ávila
+              </h3>
+              <span className="font-sans text-amber-600 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">
+                Advocacia & Consultoria
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4 w-full md:w-auto">
+            <a href="#areas" className="font-sans text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-amber-600 transition-colors hidden lg:block mr-4">
+              Áreas de Atuação
+            </a>
+            <a href="#perfil" className="font-sans text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-amber-600 transition-colors hidden lg:block mr-4">
+              O Escritório
+            </a>
+            <CustomButton
+              variant="navy"
+              className="!h-12 !px-8 !text-xs font-sans"
+              href={wppLink}
+            >
+              Agendar Consulta
+            </CustomButton>
+          </div>
+        </div>
+      </div>
+
+      {/* Conteúdo Principal (Hero Section) */}
+      <main className="relative z-10 flex flex-col items-center justify-center text-center px-4 pt-10 md:pt-20 pb-20">
+        <div className="flex items-center space-x-3 mb-8 bg-white/60 px-5 py-2 rounded-full border border-amber-100 shadow-sm backdrop-blur-md">
+          <div className="h-2 w-2 bg-amber-500 rounded-full animate-pulse"></div>
+          <span className="font-sans text-[10px] md:text-xs font-bold tracking-[0.3em] text-amber-700 uppercase">
+            Especialista em Direito Imobiliário
+          </span>
+          <div className="h-2 w-2 bg-amber-500 rounded-full animate-pulse"></div>
+        </div>
+
+        <h1 className="font-serif text-4xl md:text-6xl lg:text-[5rem] font-[900] text-slate-900 leading-[1.1] tracking-tight mb-8 drop-shadow-sm uppercase max-w-5xl text-balance">
+          ORIENTAÇÃO JURÍDICA PRECISA E <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-yellow-600 to-amber-700">
+            SOLUÇÕES EFICAZES.
+          </span>
+        </h1>
+
+        <p className="font-sans max-w-3xl text-slate-600 text-base md:text-xl leading-relaxed mb-12 px-4 font-medium">
+          Você está enfrentando desafios legais no ramo imobiliário? Conte com a nossa assessoria para resolver de forma segura e estratégica.
+          <span className="block mt-3 text-slate-900 font-bold">
+            Regularização de imóveis, Due Diligence, Desapropriações e Direito Sucessório.
+          </span>
+        </p>
+
+        <div className="flex flex-col md:flex-row items-center justify-center gap-6 mb-20 w-full max-w-4xl">
+          <CustomButton variant="gold" className="w-full md:w-auto !h-16 !px-12 !text-sm font-sans" href={wppLink}>
+            Fale com a Especialista
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-5 w-5 ml-2 transition-transform duration-300 group-hover:translate-x-1"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </CustomButton>
+        </div>
+
+        {/* --- SEÇÃO 1: DIREITO IMOBILIÁRIO (INTERATIVO) --- */}
+        <div id="areas" className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 px-6 lg:px-10 max-w-7xl items-center my-24 mx-auto text-left relative z-10">
+          {/* Card Visual Interativo */}
+          <div className="order-2 lg:order-1 aspect-square lg:aspect-video overflow-hidden group bg-white/50 backdrop-blur-2xl border-white/80 border-2 rounded-none md:rounded-[2rem] relative shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(245,158,11,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(245,158,11,0.05)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black_50%,transparent_90%)]"></div>
+            <div className="flex overflow-hidden absolute inset-0 perspective-800 items-center justify-center">
+              
+              {/* Interface de Due Diligence / Documentos */}
+              <div className="relative w-80 bg-slate-900 backdrop-blur-md border border-slate-700 rounded-2xl shadow-2xl flex flex-col p-6 z-10 animate-float">
+                <div className="flex items-center justify-between mb-5 border-b border-slate-700 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <div className="font-sans text-xs font-black text-white uppercase tracking-tight">
+                        Processo de Due Diligence
+                      </div>
+                      <div className="font-sans text-[10px] text-amber-400 font-bold flex items-center gap-1 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        Analisando riscos...
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-full h-24 bg-slate-800 rounded-xl mb-5 relative overflow-hidden flex items-center justify-center border border-slate-700">
+                  {/* Linha de escaneamento animada */}
+                  <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.8)] z-20 animate-[float-slow_3s_ease-in-out_infinite]"></div>
+                  <div className="font-serif text-3xl text-slate-600 opacity-50">§</div>
+                </div>
+
+                <div className="space-y-3 font-sans">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+                    <span>Segurança Jurídica</span>
+                    <span className="text-amber-500">100% Avaliada</span>
+                  </div>
+                  <div className="w-full bg-slate-800 rounded-full h-1.5">
+                    <div className="bg-gradient-to-r from-amber-600 to-amber-400 h-1.5 rounded-full w-full transition-all duration-1000"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cursor Simulando o Advogado analisando */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                <div className="animate-[cursor-float-1_10s_infinite_ease-in-out]">
+                  <svg
+                    className="w-5 h-5 text-amber-500 drop-shadow-lg"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    style={{ transform: "rotate(-25deg)" }}
+                  >
+                    <path d="M5.5 3.21l10.8 5.4a1 1 0 0 1 .16 1.7l-4.2 2.1 2.1 4.2a1 1 0 0 1-1.8.9l-2.1-4.2-4.2 2.1a1 1 0 0 1-1.45-1.09l1.69-11.11z" />
+                  </svg>
+                  <div className="ml-3.5 -mt-1 px-3 py-1.5 rounded-full bg-amber-500 text-[10px] font-bold text-slate-900 shadow-xl whitespace-nowrap font-sans uppercase tracking-wider">
+                    Análise Completa
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Copy Seção 1 */}
+          <div className="order-1 lg:order-2">
+            <div className="bg-amber-100 text-amber-800 font-sans text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full w-fit mb-5 border border-amber-200">
+              ⚖️ Direito Imobiliário
+            </div>
+            <h3 className="font-serif text-3xl md:text-5xl font-[900] text-slate-900 tracking-tight mb-6 uppercase leading-tight">
+              ASSISTÊNCIA ABRANGENTE PARA <span className="text-amber-600">SUAS PROPRIEDADES.</span>
+            </h3>
+            <p className="font-sans leading-relaxed text-base md:text-lg text-slate-600 mb-8 font-medium">
+              Oferecemos assistência abrangente para lidar com todas as questões legais relacionadas a imóveis. Proteja seu patrimônio com a expertise de quem entende do assunto.
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-sans">
+              {[
+                { title: "Due Diligence", desc: "Segurança em operações de compra, venda e investimentos." },
+                { title: "Usucapião", desc: "Regularização da posse do seu imóvel ou terreno." },
+                { title: "Atraso na Planta", desc: "Seus direitos garantidos contra prazos não cumpridos." },
+                { title: "Desapropriação", desc: "Garantimos uma indenização justa conforme a lei." },
+              ].map((item, i) => (
+                <div key={i} className="bg-white/80 border border-slate-100 p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                  <div className="font-extrabold text-slate-900 mb-1">{item.title}</div>
+                  <div className="text-sm text-slate-500 font-medium">{item.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* --- SEÇÃO 2: PERFIL DRA. ELAINE AVILA --- */}
+        <div id="perfil" className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 px-6 lg:px-10 max-w-7xl items-center my-24 mx-auto text-left relative z-10">
+          {/* Texto Seção 2 */}
+          <div>
+            <div className="bg-slate-200 text-slate-800 font-sans text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full w-fit mb-5 border border-slate-300">
+              👩‍⚖️ Quem Somos
+            </div>
+            <h3 className="font-serif text-4xl md:text-5xl font-[900] text-slate-900 tracking-tight mb-4 uppercase">
+              ELAINE ÁVILA
+            </h3>
+            <div className="inline-block bg-slate-900 text-amber-400 font-sans text-xs font-bold px-4 py-1.5 rounded-md mb-6 uppercase tracking-widest">
+              Advogada Fundadora
+            </div>
+            <p className="font-sans leading-relaxed text-base md:text-lg text-slate-600 mb-6 font-medium">
+              Sou advogada com formação pela PUC-Minas em 2011, pós-graduada em Direito e Negócios Imobiliários pela Fundação Escola do Ministério Público.
+            </p>
+            <p className="font-sans leading-relaxed text-base md:text-lg text-slate-600 mb-8 font-medium">
+              Com vários anos de dedicação ao estudo e prática nas áreas imobiliária, condominial, fundiária e sucessória, oferecemos orientação jurídica especializada e soluções estratégicas para atender rigorosamente às necessidades dos clientes.
+            </p>
+            
+            <div className="flex gap-4">
+              <CustomButton variant="navy" className="!h-12 !px-8 !text-xs font-sans" href={wppLink}>
+                Agendar Reunião
+              </CustomButton>
+            </div>
+          </div>
+
+          {/* Card Visual Interativo: Perfil/Autoridade */}
+          <div className="aspect-square lg:aspect-video overflow-hidden group bg-white/50 backdrop-blur-2xl border-white/80 border-2 rounded-none md:rounded-[2rem] relative shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(30,41,59,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(30,41,59,0.05)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
+            <div className="flex overflow-hidden absolute inset-0 perspective-800 items-center justify-center">
+              
+              <div className="relative w-80 bg-white border border-slate-100 rounded-3xl shadow-2xl flex flex-col p-6 z-10 animate-float-2">
+                <div className="flex justify-between items-start mb-6 border-b border-slate-100 pb-4">
+                  <div>
+                    <div className="font-serif text-lg font-black text-slate-900 tracking-tight">
+                      Dra. Elaine Ávila
+                    </div>
+                    <div className="font-sans text-[10px] text-amber-600 font-bold uppercase tracking-widest mt-1">
+                      Especialista Imobiliária
+                    </div>
+                  </div>
+                  {/* Substituição do avatar de letras pela foto real com fallback de segurança */}
+                  <img
+                    src="elaine-foto.jpg"
+                    alt="Dra. Elaine Ávila"
+                    className="w-14 h-14 rounded-xl object-cover border-2 border-amber-400 shadow-sm bg-slate-200"
+                    onError={(e) => {
+                      e.currentTarget.src = "https://images.unsplash.com/photo-1580828369066-6460d0505199?auto=format&fit=crop&q=80&w=150&h=150";
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-4 mb-6 font-sans">
+                  <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl flex items-center gap-3">
+                    <div className="text-amber-500 flex">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <div className="text-xs font-bold text-slate-700 uppercase tracking-wide">Pós-Graduada FMP</div>
+                  </div>
+                  
+                  <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
+                    <div className="text-[10px] text-slate-500 font-bold mb-2 uppercase tracking-widest">Campos de Atuação</div>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="bg-amber-100 text-amber-800 text-[9px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">Imobiliária</span>
+                      <span className="bg-slate-200 text-slate-700 text-[9px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">Sucessória</span>
+                      <span className="bg-slate-800 text-white text-[9px] px-2 py-1 rounded-md font-bold uppercase tracking-wider">Fundiária</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* --- SEÇÃO 3: DIREITO SUCESSÓRIO E PARCEIROS --- */}
+        <section id="sucessoes" className="relative z-10 py-24 px-4 w-full max-w-7xl mx-auto overflow-visible border-t border-slate-200/50">
+          <div className="text-center mb-16">
+            <div className="inline-block bg-slate-900 text-amber-400 font-sans text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full mb-5 shadow-md">
+              📜 Direito Sucessório
+            </div>
+            <h2 className="font-serif text-3xl md:text-5xl font-[900] text-slate-900 tracking-tight uppercase max-w-4xl mx-auto leading-[1.1]">
+              SOLUÇÕES SENSÍVEIS PARA <br/> <span className="text-amber-600">QUESTÕES DE HERANÇA.</span>
+            </h2>
+            <p className="font-sans text-slate-600 text-base md:text-lg mt-6 font-medium max-w-2xl mx-auto">
+              Quando se trata de questões de sucessão, estamos aqui para guiar nossos clientes com soluções eficazes e estratégicas.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch font-sans">
+            {[
+              {
+                name: "Inventários",
+                subtitle: "Partilhas e Regularização",
+                desc: "Assessoria completa para conduzir o inventário de forma ágil, minimizando conflitos familiares e protegendo o patrimônio.",
+                features: ["Judicial e Extrajudicial", "Análise de Impostos (ITCMD)", "Acordos entre Herdeiros"],
+                popular: true,
+                icon: "🏛️"
+              },
+              {
+                name: "Testamentos",
+                subtitle: "Vontade e Segurança",
+                desc: "Garantimos que a sua vontade seja respeitada, elaborando testamentos blindados contra nulidades legais.",
+                features: ["Orientação Legal", "Redação Técnica", "Garantia de Cumprimento"],
+                popular: false,
+                icon: "🖋️"
+              },
+              {
+                name: "Planejamento",
+                subtitle: "Patrimonial",
+                desc: "Organização prévia da sucessão para reduzir custos tributários e evitar litígios futuros entre as partes.",
+                features: ["Holdings Familiares", "Doações com Reserva de Usufruto", "Proteção de Bens"],
+                icon: "💼"
+              },
+            ].map((plan, i) => (
+              <div
+                key={i}
+                className={`relative group flex flex-col bg-white/80 backdrop-blur-xl border-2 transition-all duration-500 rounded-xl md:rounded-[2rem] p-8 shadow-sm hover:shadow-2xl hover:-translate-y-2 ${
+                  plan.popular ? "border-amber-400 scale-100 md:scale-105 z-10 bg-white" : "border-slate-100"
+                }`}
+              >
+                {plan.popular && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-600 to-amber-500 text-white text-[9px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-md">
+                    Essencial
+                  </div>
+                )}
+
+                <div className="mb-6 flex items-center justify-between">
+                  <div className="text-4xl">{plan.icon}</div>
+                </div>
+
+                <div className="mb-6">
+                  <h4 className="font-serif text-2xl font-black text-slate-900 uppercase tracking-tight">{plan.name}</h4>
+                  <div className="text-[10px] font-bold text-amber-600 uppercase tracking-widest mt-1 mb-4">{plan.subtitle}</div>
+                  <p className="text-sm text-slate-600 font-medium leading-relaxed">{plan.desc}</p>
+                </div>
+
+                <div className="space-y-4 mb-10 flex-grow pt-6 border-t border-slate-100">
+                  {plan.features.map((feature, idx) => (
+                    <div key={idx} className="flex items-start gap-3 text-sm font-bold text-slate-700">
+                      <div className="text-amber-500 mt-0.5 shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      {feature}
+                    </div>
+                  ))}
+                </div>
+
+                <CustomButton variant={plan.popular ? "gold" : "navy"} className="w-full !h-12 !text-xs" href={wppLink}>
+                  Solicitar Análise
+                </CustomButton>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* --- DEPOIMENTOS & PARCERIAS (SLIDER) --- */}
+        <section id="parcerias" className="relative z-10 py-24 px-4 w-full max-w-[1200px] mx-auto border-t border-slate-200/50">
+          <div className="text-center mb-16">
+            <div className="inline-block bg-slate-100 text-slate-700 font-sans text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full mb-5 border border-slate-200">
+              🤝 Abordagem Multidisciplinar
+            </div>
+            <h2 className="font-serif text-3xl md:text-5xl font-[900] text-slate-900 tracking-tight uppercase max-w-4xl mx-auto leading-[1.1]">
+              INTEGRAÇÃO COM <span className="text-amber-600">PARCEIROS.</span>
+            </h2>
+            <p className="font-sans text-slate-600 text-base max-w-2xl mx-auto mt-4 font-medium">
+              Trabalhamos em estreita colaboração com corretores de imóveis, arquitetos, engenheiros e despachantes para oferecer um serviço completo.
+            </p>
+          </div>
+
+          <div className="relative h-[400px] w-full max-w-5xl mx-auto perspective-800 font-sans">
+            {testimonials.map((t, index) => {
+              let position: "center" | "left" | "right" = "center";
+              if (index === (activeTestimonial + 1) % 3) position = "right";
+              if (index === (activeTestimonial - 1 + 3) % 3) position = "left";
+
+              const positionClasses = {
+                center: "z-30 opacity-100 -translate-x-1/2 -translate-y-1/2 scale-100 rotate-0",
+                left: "z-10 opacity-0 pointer-events-none md:pointer-events-auto md:opacity-40 -translate-x-1/2 md:-translate-x-[125%] -translate-y-1/2 scale-90 -rotate-[4deg]",
+                right: "z-10 opacity-0 pointer-events-none md:pointer-events-auto md:opacity-40 -translate-x-1/2 md:translate-x-[25%] -translate-y-1/2 scale-90 rotate-[4deg]"
+              };
+
+              return (
+                <div
+                  key={index}
+                  className={`absolute top-1/2 left-1/2 transition-all duration-700 ease-out w-[90%] md:w-[450px] bg-white border border-slate-100 p-8 shadow-xl rounded-2xl cursor-pointer hover:shadow-2xl ${positionClasses[position]}`}
+                  onClick={() => setActiveTestimonial(index)}
+                >
+                  <div className="flex items-center gap-1 mb-6 text-amber-500">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <svg key={star} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                        <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                      </svg>
+                    ))}
+                  </div>
+                  <blockquote className="text-base text-slate-700 mb-8 font-medium leading-relaxed italic">
+                    &quot;{t.quote}&quot;
+                  </blockquote>
+                  <div className="flex items-center gap-4 pt-6 border-t border-slate-100">
+                    <img src={t.img} alt={t.name} className="w-12 h-12 rounded-full border border-slate-200 object-cover" />
+                    <div>
+                      <div className="text-sm text-slate-900 font-extrabold">{t.name}</div>
+                      <div className="text-[10px] text-amber-600 font-bold uppercase tracking-widest mt-0.5">{t.role}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-16 text-center relative z-10 flex flex-col items-center">
+            <h3 className="font-serif text-3xl md:text-5xl font-[900] text-slate-900 mb-6 uppercase leading-tight">
+              ESTAMOS COMPROMETIDOS <br className="md:hidden" />
+              <span className="text-amber-600">COM O SEU SUCESSO.</span>
+            </h3>
+            <p className="font-sans text-slate-600 text-base max-w-2xl mx-auto mb-10 font-medium">
+              Entre em contato conosco para agendar uma consulta e discutir como podemos atender às suas necessidades específicas.
+            </p>
+            <CustomButton
+              variant="navy"
+              className="w-full md:w-auto !h-16 !px-12 !text-sm font-sans"
+              href={wppLink}
+            >
+              Falar com o Escritório
+            </CustomButton>
+          </div>
+        </section>
+      </main>
+
+      {/* --- RODAPÉ (FOOTER) --- */}
+      <footer className="relative z-10 w-full border-t border-slate-200 bg-white pt-20 pb-10 px-4 font-sans">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
+          
+          {/* Logo Footer */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-slate-900 p-2 rounded-lg">
+                <span className="font-serif font-black text-amber-400 text-xl tracking-widest">E</span><span className="font-serif font-black text-white text-xl tracking-widest -ml-1">A</span>
+              </div>
+              <h3 className="font-serif font-black text-slate-900 text-lg uppercase tracking-widest leading-none">
+                Elaine Ávila <br/><span className="font-sans text-amber-600 text-[9px] tracking-[0.2em]">Advocacia</span>
+              </h3>
+            </div>
+            <p className="text-slate-500 text-sm font-medium leading-relaxed">
+              Serviços jurídicos confiáveis e experientes em Direito Imobiliário, Condominial, Fundiário e Sucessório.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-black text-slate-900 uppercase tracking-widest text-xs mb-8">Áreas de Atuação</h4>
+            <ul className="space-y-4">
+              {["Direito Imobiliário", "Direito Sucessório", "Regularização de Imóveis", "Due Diligence", "Atraso na Entrega (Planta)"].map((item) => (
+                <li key={item}>
+                  <a href="#" className="text-slate-500 hover:text-amber-600 transition-colors font-semibold text-sm">
+                    {item}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-black text-slate-900 uppercase tracking-widest text-xs mb-8">Links Rápidos</h4>
+            <ul className="space-y-4">
+              {["O Escritório", "Dra. Elaine Ávila", "Nossos Parceiros", "Contato"].map((item) => (
+                <li key={item}>
+                  <a href="#" className="text-slate-500 hover:text-amber-600 transition-colors font-semibold text-sm">
+                    {item}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="space-y-6">
+            <h4 className="font-black text-slate-900 uppercase tracking-widest text-xs mb-4">Contato & Endereço</h4>
+            <div className="text-slate-500 text-sm font-medium leading-relaxed space-y-2">
+              <p>📍 Av. Miguel Perrela, 140 – Castelo<br/>BH/MG, CEP 31330-290</p>
+              <p>📱 (31) 97229-0689</p>
+              <p>✉️ elaineavila.adv@gmail.com</p>
+              <p>📸 @elaineavila.adv</p>
+            </div>
+            <CustomButton variant="gold" className="w-full !h-12 !text-xs" href={wppLink}>
+              Chamar no WhatsApp
+            </CustomButton>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto border-t border-slate-100 pt-10 flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest text-center md:text-left">
+            © 2024 Elaine Ávila Advocacia & Consultoria. Todos os direitos reservados.
+          </p>
+          <div className="flex gap-8">
+            <a href="#" className="text-slate-400 hover:text-amber-600 text-[10px] font-bold uppercase tracking-widest transition-colors">
+              Privacidade
+            </a>
+            <a href="#" className="text-slate-400 hover:text-amber-600 text-[10px] font-bold uppercase tracking-widest transition-colors">
+              Termos Legais
+            </a>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
